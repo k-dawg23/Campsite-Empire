@@ -23,6 +23,7 @@ import {
 } from '../features/simulation/selectors';
 import type { GameState, StructureState, StructureType, TileState } from '../features/simulation/types';
 import { clearSavedGame, loadGameState, saveGameState } from '../features/save/indexedDb';
+import { clearSpeedPreference, loadSpeedPreference, saveSpeedPreference } from '../features/save/speedPreference';
 
 const tileWidth = 72;
 const tileHeight = 36;
@@ -36,16 +37,37 @@ export function App() {
   const ai = useAppSelector(selectAiStatus);
   const [hoveredTile, setHoveredTile] = useState<{ x: number; y: number } | undefined>();
   const [loaded, setLoaded] = useState(false);
+  const [saveStatus, setSaveStatus] = useState('Save system starting.');
+  const [newGameConfirm, setNewGameConfirm] = useState(false);
   const ticking = useRef(false);
+  const lastSavedSignature = useRef('');
+  const pendingSaveSignature = useRef('');
+  const latestGame = useRef(game);
 
   useEffect(() => {
     getAiConfig();
+    const preferredSpeed = loadSpeedPreference();
+    if (preferredSpeed !== undefined) dispatch(setSpeed(preferredSpeed));
     loadGameState()
       .then((saved) => {
-        if (saved) dispatch(hydrateGame(saved));
+        if (!saved) {
+          setSaveStatus('No saved campground found.');
+          return;
+        }
+        const speed = loadSpeedPreference() ?? saved.speed;
+        const hydrated = { ...saved, speed };
+        lastSavedSignature.current = gameSignature(hydrated);
+        dispatch(hydrateGame(hydrated));
+        setSaveStatus(`Loaded saved campground from ${saved.lastSavedAt ? new Date(saved.lastSavedAt).toLocaleTimeString() : 'IndexedDB'}.`);
       })
+      .catch(() => setSaveStatus('Could not load saved campground.'))
       .finally(() => setLoaded(true));
   }, [dispatch]);
+
+  useEffect(() => {
+    if (!loaded) return;
+    saveSpeedPreference(game.speed);
+  }, [game.speed, loaded]);
 
   useEffect(() => {
     if (!loaded || game.speed === 0) return undefined;
@@ -60,14 +82,33 @@ export function App() {
   }, [dispatch, game.speed, loaded]);
 
   useEffect(() => {
+    latestGame.current = game;
+    if (!loaded) return;
+    const signature = gameSignature(game);
+    if (signature !== lastSavedSignature.current) pendingSaveSignature.current = signature;
+  }, [game, loaded]);
+
+  useEffect(() => {
     if (!loaded) return undefined;
     const interval = window.setInterval(() => {
-      saveGameState(game)
-        .then(() => dispatch(markSaved()))
-        .catch(() => undefined);
-    }, 3500);
+      if (!pendingSaveSignature.current) return;
+      const stateToSave = latestGame.current;
+      const signature = gameSignature(stateToSave);
+      if (signature === lastSavedSignature.current) {
+        pendingSaveSignature.current = '';
+        return;
+      }
+      saveGameState(stateToSave)
+        .then(() => {
+          lastSavedSignature.current = signature;
+          if (pendingSaveSignature.current === signature) pendingSaveSignature.current = '';
+          dispatch(markSaved());
+          setSaveStatus(`Autosaved at ${new Date().toLocaleTimeString()}.`);
+        })
+        .catch(() => setSaveStatus('Autosave failed.'));
+    }, 2000);
     return () => window.clearInterval(interval);
-  }, [dispatch, game, loaded]);
+  }, [dispatch, loaded]);
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -82,9 +123,51 @@ export function App() {
 
   const selectedInfo = useMemo(() => describeSelection(game), [game]);
 
+  async function saveNow() {
+    try {
+      const signature = gameSignature(game);
+      await saveGameState(game);
+      lastSavedSignature.current = signature;
+      pendingSaveSignature.current = '';
+      dispatch(markSaved());
+      setSaveStatus(`Saved at ${new Date().toLocaleTimeString()}.`);
+      setNewGameConfirm(false);
+    } catch {
+      setSaveStatus('Save failed.');
+    }
+  }
+
+  async function loadSavedGame() {
+    try {
+      const saved = await loadGameState();
+      if (!saved) {
+        setSaveStatus('No compatible save found.');
+        return;
+      }
+      const hydrated = { ...saved, speed: loadSpeedPreference() ?? saved.speed };
+      lastSavedSignature.current = gameSignature(hydrated);
+      pendingSaveSignature.current = '';
+      dispatch(hydrateGame(hydrated));
+      setSaveStatus(`Loaded at ${new Date().toLocaleTimeString()}.`);
+      setNewGameConfirm(false);
+    } catch {
+      setSaveStatus('Load failed.');
+    }
+  }
+
   async function startFreshGame() {
+    if (!newGameConfirm) {
+      setNewGameConfirm(true);
+      setSaveStatus('Click New Game again to clear saved data and start over.');
+      return;
+    }
     await clearSavedGame();
+    clearSpeedPreference();
+    lastSavedSignature.current = '';
+    pendingSaveSignature.current = '';
+    setNewGameConfirm(false);
     dispatch(resetGame());
+    setSaveStatus('Started a new campground and cleared saved data.');
   }
 
   return (
@@ -93,7 +176,6 @@ export function App() {
         <header className="flex flex-wrap items-center justify-between gap-4 border-b border-pine/10 bg-pine px-5 py-3 text-white">
           <div>
             <h1 className="text-2xl font-semibold tracking-normal">Campsite Empire</h1>
-            <p className="text-sm text-white/75">v{game.version} · React + TypeScript + Redux</p>
           </div>
           <div className="flex flex-wrap items-center gap-3 text-sm">
             <Metric label="Money" value={`$${game.money.toFixed(0)}`} />
@@ -170,13 +252,34 @@ export function App() {
           <aside className="space-y-4">
             <Panel title="Inspector">
               <div className="whitespace-pre-line text-sm leading-6">{selectedInfo}</div>
-              <button
-                type="button"
-                className="mt-4 w-full rounded-md border border-pine/20 bg-white px-3 py-2 text-sm font-semibold hover:border-pine/50"
-                onClick={startFreshGame}
-              >
-                New Game
-              </button>
+              <div className="mt-4 grid grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  className="rounded-md border border-pine/20 bg-white px-3 py-2 text-sm font-semibold hover:border-pine/50"
+                  onClick={saveNow}
+                >
+                  Save
+                </button>
+                <button
+                  type="button"
+                  className="rounded-md border border-pine/20 bg-white px-3 py-2 text-sm font-semibold hover:border-pine/50"
+                  onClick={loadSavedGame}
+                >
+                  Load
+                </button>
+                <button
+                  type="button"
+                  className={`rounded-md border px-3 py-2 text-sm font-semibold ${
+                    newGameConfirm
+                      ? 'border-amber-600 bg-amber-100 text-amber-900'
+                      : 'border-pine/20 bg-white hover:border-pine/50'
+                  }`}
+                  onClick={startFreshGame}
+                >
+                  {newGameConfirm ? 'Confirm' : 'New Game'}
+                </button>
+              </div>
+              <p className="mt-3 text-sm text-pine/70">{saveStatus}</p>
             </Panel>
 
             <Panel title="AI Status">
@@ -442,6 +545,11 @@ function describeSelection(game: GameState): string {
   const guest = tourist ? `${tourist.name}, ${tourist.satisfaction.toFixed(0)}% satisfied` : 'Vacant';
   const price = definition.isPlot ? `\nNightly price: $${priceFor(game, structure.type)}` : '';
   return `${definition.name}\nTile ${selected.x},${selected.y}\nStatus: ${guest}${price}\nMaintenance: $${definition.maintenanceCost}/day`;
+}
+
+function gameSignature(game: GameState): string {
+  const { lastSavedAt: _lastSavedAt, ...stateForSave } = game;
+  return JSON.stringify(stateForSave);
 }
 
 function tileCenter(x: number, y: number) {
