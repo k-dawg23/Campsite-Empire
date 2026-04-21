@@ -21,7 +21,7 @@ export function createInitialTiles(): TileState[] {
 
 export function createNewGame(): GameState {
   const state: GameState = {
-    version: '2.0.1',
+    version: '2.0.2',
     saveSchemaVersion,
     day: 1,
     hour: 6,
@@ -33,7 +33,7 @@ export function createNewGame(): GameState {
     speed: 1,
     ticksAdvanced: 0,
     selectedBuild: 'tentSite',
-    lastEvent: 'Campsite Empire v2.0.0 is running at 1x.',
+    lastEvent: 'Campsite Empire v2.0.2 is running at 1x.',
     pricing: {
       tentSite: 22,
       campervanSpot: 38,

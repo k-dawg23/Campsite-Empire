@@ -110,17 +110,23 @@ export function App() {
                 {buildableOrder.map((type) => {
                   const item = buildables[type];
                   const active = game.selectedBuild === type;
+                  const canAfford = game.money >= item.buildCost;
                   return (
                     <button
                       key={type}
                       type="button"
+                      disabled={!canAfford}
                       className={`flex items-center justify-between rounded-md border px-3 py-2 text-left text-sm transition ${
-                        active
+                        !canAfford
+                          ? 'cursor-not-allowed border-stone-300 bg-stone-100 text-pine/40'
+                          : active
                           ? 'border-pine bg-pine text-white'
                           : 'border-pine/15 bg-white hover:border-pine/40'
                       }`}
-                      title={`${item.name}: build $${item.buildCost}, maintenance $${item.maintenanceCost}/day`}
-                      onClick={() => dispatch(selectBuild(type))}
+                      title={`${item.name}: build $${item.buildCost}, maintenance $${item.maintenanceCost}/day${canAfford ? '' : ' - not enough money'}`}
+                      onClick={() => {
+                        if (canAfford) dispatch(selectBuild(type));
+                      }}
                     >
                       <span className="font-medium">{item.name}</span>
                       <span>${item.buildCost}</span>
@@ -220,12 +226,12 @@ export function IsometricMap({
   const dispatch = useAppDispatch();
   const selectedBuild = buildables[game.selectedBuild];
   const sortedTiles = [...game.tiles].sort((left, right) => left.x + left.y - (right.x + right.y) || left.x - right.x);
+  const sortedStructures = [...game.structures].sort((left, right) => left.x + left.y - (right.x + right.y) || left.x - right.x);
   return (
     <svg viewBox="0 0 1120 690" className="h-full min-h-[650px] w-full" role="img" aria-label="Campsite map">
       <rect width="1120" height="690" fill="#f5efe2" />
       {sortedTiles.map((tile) => {
         const points = tilePoints(tile.x, tile.y);
-        const structure = game.structures.find((candidate) => candidate.x === tile.x && candidate.y === tile.y);
         const canBuild = !tile.structureId && selectedBuild.allowedTerrain.includes(tile.terrain);
         const hovered = hoveredTile?.x === tile.x && hoveredTile.y === tile.y;
         const selected = game.selectedTile?.x === tile.x && game.selectedTile.y === tile.y;
@@ -241,10 +247,12 @@ export function IsometricMap({
               onClick={() => dispatch(placeSelectedBuild({ x: tile.x, y: tile.y }))}
               className="cursor-pointer transition-colors"
             />
-            {structure ? <StructureMarker structure={structure} game={game} /> : null}
           </g>
         );
       })}
+      {sortedStructures.map((structure) => (
+        <StructureMarker key={structure.id} structure={structure} game={game} />
+      ))}
     </svg>
   );
 }
@@ -263,7 +271,7 @@ function StructureMarker({ structure, game }: { structure: StructureState; game:
       data-testid={`structure-${structure.type}-${occupiedPlot ? 'occupied' : 'vacant'}`}
     >
       <StructureIcon structure={structure} center={center} />
-      {occupiedPlot ? <OccupiedBadge x={center.x + 16} y={center.y - 34} unhappy={unhappy} /> : null}
+      {occupiedPlot ? <OccupiedBadge type={structure.type} x={center.x + 14} y={center.y - 18} unhappy={unhappy} /> : null}
     </g>
   );
 }
@@ -358,9 +366,12 @@ function StructureIcon({ structure, center }: { structure: StructureState; cente
   }
 }
 
-function OccupiedBadge({ x, y, unhappy }: { x: number; y: number; unhappy: boolean }) {
+function OccupiedBadge({ type, x, y, unhappy }: { type: StructureType; x: number; y: number; unhappy: boolean }) {
   return (
-    <g aria-label={unhappy ? 'unhappy guest occupied marker' : 'occupied guest marker'}>
+    <g
+      aria-label={unhappy ? 'unhappy guest occupied marker' : 'occupied guest marker'}
+      data-testid={`occupied-marker-${type}`}
+    >
       <circle cx={x} cy={y} r="10" fill={unhappy ? '#f2b84b' : '#10271e'} stroke="#ffffff" strokeWidth="2" />
       <circle cx={x} cy={y - 3} r="3" fill="#ffffff" />
       <path d={`M ${x - 5} ${y + 6} C ${x - 2} ${y + 1}, ${x + 2} ${y + 1}, ${x + 5} ${y + 6}`} fill="none" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" />
