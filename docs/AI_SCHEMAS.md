@@ -2,7 +2,7 @@
 
 The AI layer requests one JSON object and parses the first complete object in the response. Any missing field, invalid type, timeout, provider error, or unsafe value falls back to the template implementation.
 
-In v2 browser builds, configure providers with `VITE_CAMPSITE_AI_PROVIDER`, `VITE_CAMPSITE_AI_URL`, and `VITE_CAMPSITE_AI_MODEL`.
+In v2 browser builds, configure providers with `VITE_CAMPSITE_AI_PROVIDER`, `VITE_CAMPSITE_AI_URL`, `VITE_CAMPSITE_AI_MODEL`, and optional `VITE_CAMPSITE_AI_TIMEOUT_MS`.
 
 ## Tourist Generation
 

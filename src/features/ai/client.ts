@@ -27,13 +27,15 @@ export interface AiConfig {
   provider: string;
   url: string;
   model: string;
+  timeoutMs: number;
 }
 
 export function getAiConfig(): AiConfig {
   return {
     provider: import.meta.env.VITE_CAMPSITE_AI_PROVIDER || '',
     url: import.meta.env.VITE_CAMPSITE_AI_URL || 'http://localhost:11434/api/generate',
-    model: import.meta.env.VITE_CAMPSITE_AI_MODEL || 'llama3.1'
+    model: import.meta.env.VITE_CAMPSITE_AI_MODEL || 'llama3.1',
+    timeoutMs: readTimeout(import.meta.env.VITE_CAMPSITE_AI_TIMEOUT_MS)
   };
 }
 
@@ -42,9 +44,9 @@ export async function generateTouristWithAi(game: GameState): Promise<AiResult<T
   const prompt = `Return one JSON object only with schema:
 {"name":"string","personality":"string","budget":number,"preferred_plot":"tentSite|campervanSpot|rvHookup","likes_facilities":["restroom"],"dislikes_nearby":["playground"],"likes_quiet":boolean,"likes_water":boolean,"stay_nights":number}
 Create a plausible campground tourist for weather ${game.weather}, season ${game.season}, reputation ${game.reputation}.`;
-  const object = await askLocalJson(prompt);
-  const record = asRecord(object);
-  if (!record) return { value: fallback, source: 'fallback', feature: 'tourist', error: 'No valid JSON object returned.' };
+  const response = await askLocalJson(prompt);
+  const record = asRecord(response.object);
+  if (!record) return { value: fallback, source: 'fallback', feature: 'tourist', error: response.error || 'No valid JSON object returned.' };
 
   const preferredPlot = normalizeStructure(readString(record, 'preferred_plot', fallback.preferences.preferredPlot));
   if (!buildables[preferredPlot].isPlot) {
@@ -79,9 +81,9 @@ export async function selectPlotWithAi(
 Tourist: ${tourist.name}, budget ${tourist.budget}, personality ${tourist.personality}.
 Ranked plots: ${JSON.stringify(decision.rankedPlots)}
 Choose whether the tourist stays.`;
-  const object = await askLocalJson(prompt);
-  const record = asRecord(object);
-  if (!record) return { value: decision, source: 'fallback', feature: 'plot-selection', error: 'No valid JSON object returned.' };
+  const response = await askLocalJson(prompt);
+  const record = asRecord(response.object);
+  if (!record) return { value: decision, source: 'fallback', feature: 'plot-selection', error: response.error || 'No valid JSON object returned.' };
 
   const stay = readBoolean(record, 'stay', decision.stay);
   const selected = readString(record, 'selected_plot_id', decision.selectedPlotId || '', 80);
@@ -103,9 +105,9 @@ export async function generateChatterWithAi(game: GameState, tourist: TouristSta
   const prompt = `Return one JSON object only with schema:
 {"mood":"string","text":"string"}
 Write short campground guest chatter for ${tourist.name}. Satisfaction ${tourist.satisfaction}, weather ${game.weather}.`;
-  const object = await askLocalJson(prompt);
-  const record = asRecord(object);
-  if (!record) return { value: fallback, source: 'fallback', feature: 'chatter', error: 'No valid JSON object returned.' };
+  const response = await askLocalJson(prompt);
+  const record = asRecord(response.object);
+  if (!record) return { value: fallback, source: 'fallback', feature: 'chatter', error: response.error || 'No valid JSON object returned.' };
 
   return {
     value: {
@@ -123,9 +125,9 @@ export async function generateReviewWithAi(game: GameState, tourist: TouristStat
   const prompt = `Return one JSON object only with schema:
 {"stars":1,"text":"string","tags":["string"]}
 Write a campground review for ${tourist.name}. Satisfaction ${tourist.satisfaction}.`;
-  const object = await askLocalJson(prompt);
-  const record = asRecord(object);
-  if (!record) return { value: fallback, source: 'fallback', feature: 'review', error: 'No valid JSON object returned.' };
+  const response = await askLocalJson(prompt);
+  const record = asRecord(response.object);
+  if (!record) return { value: fallback, source: 'fallback', feature: 'review', error: response.error || 'No valid JSON object returned.' };
 
   return {
     value: {
@@ -139,11 +141,16 @@ Write a campground review for ${tourist.name}. Satisfaction ${tourist.satisfacti
   };
 }
 
-async function askLocalJson(prompt: string): Promise<unknown | undefined> {
+interface LocalJsonResponse {
+  object?: unknown;
+  error?: string;
+}
+
+async function askLocalJson(prompt: string): Promise<LocalJsonResponse> {
   const config = getAiConfig();
-  if (!config.provider.trim()) return undefined;
+  if (!config.provider.trim()) return { error: 'No local AI provider configured; template fallback used.' };
   const controller = new AbortController();
-  const timeout = window.setTimeout(() => controller.abort(), 4500);
+  const timeout = window.setTimeout(() => controller.abort(), config.timeoutMs);
   try {
     const body = buildPayload(config, prompt);
     const response = await fetch(config.url, {
@@ -152,9 +159,17 @@ async function askLocalJson(prompt: string): Promise<unknown | undefined> {
       body: JSON.stringify(body),
       signal: controller.signal
     });
-    if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
+    if (!response.ok) {
+      const detail = await response.text().catch(() => '');
+      return {
+        error: `Local AI returned HTTP ${response.status}${response.statusText ? ` ${response.statusText}` : ''}${detail ? `: ${detail.slice(0, 180)}` : ''}`
+      };
+    }
     const text = await response.text();
-    return parseFirstJsonObject(extractProviderText(text));
+    const object = parseFirstJsonObject(extractProviderText(text));
+    return object ? { object } : { error: 'Local AI response did not contain a valid JSON object.' };
+  } catch (error) {
+    return { error: describeFetchError(error, config) };
   } finally {
     window.clearTimeout(timeout);
   }
@@ -203,4 +218,22 @@ function normalizeFacilities(values: string[]): StructureType[] {
     .map(normalizeStructure)
     .filter((type) => !buildables[type].isPlot)
     .slice(0, 4);
+}
+
+function readTimeout(value: string | undefined): number {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed >= 1000 ? Math.min(parsed, 120000) : 30000;
+}
+
+function describeFetchError(error: unknown, config: AiConfig): string {
+  if (error instanceof DOMException && error.name === 'AbortError') {
+    return `Local AI request timed out after ${Math.round(config.timeoutMs / 1000)}s. The model may still be loading or generating.`;
+  }
+  if (error instanceof TypeError) {
+    return `Local AI request failed. Check that ${config.url} is running and allows browser CORS requests.`;
+  }
+  if (error instanceof Error && error.message.trim()) {
+    return `Local AI request failed: ${error.message}`;
+  }
+  return 'Local AI request failed for an unknown reason.';
 }

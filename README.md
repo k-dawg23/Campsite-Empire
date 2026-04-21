@@ -43,6 +43,7 @@ The preferred setup is to copy `.env.example` to `.env` in the project root and 
 VITE_CAMPSITE_AI_PROVIDER=ollama
 VITE_CAMPSITE_AI_URL=http://localhost:11434/api/generate
 VITE_CAMPSITE_AI_MODEL=llama3.1
+VITE_CAMPSITE_AI_TIMEOUT_MS=30000
 ```
 
 For llama.cpp's OpenAI-compatible server:
@@ -51,9 +52,12 @@ For llama.cpp's OpenAI-compatible server:
 VITE_CAMPSITE_AI_PROVIDER=llamacpp
 VITE_CAMPSITE_AI_URL=http://localhost:8080/v1/chat/completions
 VITE_CAMPSITE_AI_MODEL=local-model
+VITE_CAMPSITE_AI_TIMEOUT_MS=60000
 ```
 
 Browser security may require enabling CORS on your local model server. If a request is blocked, times out, or returns invalid JSON, the game records the fallback reason in the AI Status panel and continues with template output.
+
+If AI Status says a request timed out, increase `VITE_CAMPSITE_AI_TIMEOUT_MS` and restart `npm run dev`. llama.cpp can be slow on the first request while the model warms up.
 
 ## Saves
 

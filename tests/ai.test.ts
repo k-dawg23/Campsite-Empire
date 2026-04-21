@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { getAiConfig } from '../src/features/ai/client';
 import { generateFallbackReview, generateFallbackTourist, safeStars } from '../src/features/ai/fallbacks';
 import { parseFirstJsonObject, readString } from '../src/features/ai/json';
 import { createNewGame } from '../src/features/simulation/newGame';
@@ -24,5 +25,9 @@ describe('AI JSON and fallback behavior', () => {
     expect(tourist.name.length).toBeGreaterThan(0);
     expect(review.stars).toBeGreaterThanOrEqual(1);
     expect(review.stars).toBeLessThanOrEqual(5);
+  });
+
+  it('uses a longer default timeout for local model calls', () => {
+    expect(getAiConfig().timeoutMs).toBeGreaterThanOrEqual(30000);
   });
 });
