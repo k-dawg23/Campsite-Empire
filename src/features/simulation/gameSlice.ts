@@ -64,13 +64,17 @@ export const runHourlyTick = createAsyncThunk('game/runHourlyTick', async (_, { 
 });
 
 const initialState = createNewGame();
+const currentVersion = '2.0.1';
 
 export const gameSlice = createSlice({
   name: 'game',
   initialState,
   reducers: {
     resetGame: () => createNewGame(),
-    hydrateGame: (_state, action: PayloadAction<GameState>) => action.payload,
+    hydrateGame: (_state, action: PayloadAction<GameState>) => ({
+      ...action.payload,
+      version: currentVersion
+    }),
     setSpeed(state, action: PayloadAction<Speed>) {
       state.speed = action.payload;
       state.lastEvent = action.payload === 0 ? 'Simulation paused.' : `Simulation running at ${action.payload}x.`;

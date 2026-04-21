@@ -21,7 +21,7 @@ export function createInitialTiles(): TileState[] {
 
 export function createNewGame(): GameState {
   const state: GameState = {
-    version: '2.0.0',
+    version: '2.0.1',
     saveSchemaVersion,
     day: 1,
     hour: 6,
