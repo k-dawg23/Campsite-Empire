@@ -2,7 +2,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testi
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { App, IsometricMap } from '../src/ui/App';
+import { App, IsometricMap, tutorialSeenKey } from '../src/ui/App';
 import { createNewGame } from '../src/features/simulation/newGame';
 import { gameSlice, resetGame } from '../src/features/simulation/gameSlice';
 import type { GameState } from '../src/features/simulation/types';
@@ -48,7 +48,69 @@ describe('App UI', () => {
     renderApp();
     expect(await screen.findByRole('heading', { name: 'Campsite Empire' })).toBeInTheDocument();
     expect(screen.queryByText(/React \+ TypeScript \+ Redux/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/v2\.0\.3/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/v2\.0\.4/)).not.toBeInTheDocument();
+  });
+
+  it('shows the tutorial on first visit with step controls and progress', async () => {
+    renderApp();
+
+    expect(await screen.findByRole('dialog', { name: 'Grow a campground people love' })).toBeInTheDocument();
+    expect(screen.getByText('Step 1 of 6')).toBeInTheDocument();
+    expect(screen.getByText(/turning a quiet grid of land into a profitable campground/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Next' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Skip' })).toBeInTheDocument();
+  });
+
+  it('advances through tutorial topics and updates progress', async () => {
+    renderApp();
+    expect(await screen.findByRole('dialog', { name: 'Grow a campground people love' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    expect(screen.getByRole('dialog', { name: 'Build plots and facilities' })).toBeInTheDocument();
+    expect(screen.getByText('Step 2 of 6')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    expect(screen.getByRole('dialog', { name: 'Tourists choose where to stay' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    expect(screen.getByRole('dialog', { name: 'Set prices with care' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    expect(screen.getByRole('dialog', { name: 'Watch weather and seasons' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    expect(screen.getByRole('dialog', { name: 'Local AI adds personality' })).toBeInTheDocument();
+    expect(screen.getByText('Step 6 of 6')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(localStorage.getItem(tutorialSeenKey)).toBe('true');
+  });
+
+  it('persists skipped tutorial state and does not reopen automatically', async () => {
+    renderApp();
+    expect(await screen.findByRole('dialog', { name: 'Grow a campground people love' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Skip' }));
+
+    expect(localStorage.getItem(tutorialSeenKey)).toBe('true');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+    cleanup();
+    renderApp();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('reopens the tutorial from Help after it has been seen', async () => {
+    localStorage.setItem(tutorialSeenKey, 'true');
+    renderApp();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Help' }));
+
+    expect(screen.getByRole('dialog', { name: 'Grow a campground people love' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Skip' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
   it('shows build costs instead of nightly prices in the build panel', async () => {

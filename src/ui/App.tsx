@@ -28,6 +28,40 @@ import { clearSpeedPreference, loadSpeedPreference, saveSpeedPreference } from '
 const tileWidth = 72;
 const tileHeight = 36;
 const mapOrigin = { x: 575, y: 34 };
+export const tutorialSeenKey = 'campsite-empire-tutorial-seen';
+
+const tutorialSteps = [
+  {
+    title: 'Grow a campground people love',
+    description:
+      'Campsite Empire is about turning a quiet grid of land into a profitable campground. Build places to stay, keep guests satisfied, earn money, and raise your reputation.'
+  },
+  {
+    title: 'Build plots and facilities',
+    description:
+      'Choose tent sites, campervan spots, RV hookups, or facilities from the Build panel, then click valid empty tiles on the isometric map. Facilities make nearby plots more attractive.'
+  },
+  {
+    title: 'Tourists choose where to stay',
+    description:
+      'Tourists arrive in the morning with budgets, personalities, and preferences. They compare available plots by price, nearby facilities, comfort, and fit before deciding to stay or leave.'
+  },
+  {
+    title: 'Set prices with care',
+    description:
+      'Use the Prices panel to tune nightly rates. Higher prices can lift revenue, but guests with tighter budgets may skip overpriced plots or become less satisfied.'
+  },
+  {
+    title: 'Watch weather and seasons',
+    description:
+      'Weather changes daily and seasons shift demand. Sunny summer days bring more campers, while storms, cold snaps, and slow seasons can test your layout and pricing.'
+  },
+  {
+    title: 'Local AI adds personality',
+    description:
+      'When available, local AI creates tourist personalities, plot choices, chatter, and reviews. If the model is unavailable, structured template fallbacks keep the simulation moving.'
+  }
+];
 
 export function App() {
   const dispatch = useAppDispatch();
@@ -39,6 +73,8 @@ export function App() {
   const [loaded, setLoaded] = useState(false);
   const [saveStatus, setSaveStatus] = useState('Save system starting.');
   const [newGameConfirm, setNewGameConfirm] = useState(false);
+  const [tutorialOpen, setTutorialOpen] = useState(false);
+  const [tutorialStep, setTutorialStep] = useState(0);
   const ticking = useRef(false);
   const lastSavedSignature = useRef('');
   const pendingSaveSignature = useRef('');
@@ -46,6 +82,7 @@ export function App() {
 
   useEffect(() => {
     getAiConfig();
+    if (localStorage.getItem(tutorialSeenKey) !== 'true') setTutorialOpen(true);
     const preferredSpeed = loadSpeedPreference();
     if (preferredSpeed !== undefined) dispatch(setSpeed(preferredSpeed));
     loadGameState()
@@ -122,6 +159,30 @@ export function App() {
   }, [dispatch]);
 
   const selectedInfo = useMemo(() => describeSelection(game), [game]);
+  const currentTutorialStep = tutorialSteps[tutorialStep];
+
+  function markTutorialSeen() {
+    localStorage.setItem(tutorialSeenKey, 'true');
+  }
+
+  function openTutorial() {
+    setTutorialStep(0);
+    setTutorialOpen(true);
+  }
+
+  function skipTutorial() {
+    markTutorialSeen();
+    setTutorialOpen(false);
+  }
+
+  function nextTutorialStep() {
+    if (tutorialStep >= tutorialSteps.length - 1) {
+      markTutorialSeen();
+      setTutorialOpen(false);
+      return;
+    }
+    setTutorialStep((step) => step + 1);
+  }
 
   async function saveNow() {
     try {
@@ -182,6 +243,13 @@ export function App() {
             <Metric label="Reputation" value={`${game.reputation.toFixed(1)}★`} />
             <Metric label="Occupancy" value={`${occupancy.occupied}/${occupancy.total}`} />
             <Metric label="Demand" value={`${game.demand.toFixed(2)}x`} />
+            <button
+              type="button"
+              className="rounded-md border border-white/25 bg-white/10 px-3 py-2 font-semibold text-white hover:border-white/60"
+              onClick={openTutorial}
+            >
+              Help
+            </button>
           </div>
         </header>
 
@@ -313,6 +381,50 @@ export function App() {
           {game.lastEvent} · Ticks {game.ticksAdvanced} · Last save {game.lastSavedAt ? new Date(game.lastSavedAt).toLocaleTimeString() : 'pending'}
         </footer>
       </div>
+      {tutorialOpen ? (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-pine/55 px-4" role="presentation">
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="tutorial-title"
+            className="w-full max-w-lg rounded-md border border-pine/15 bg-white p-5 shadow-panel"
+          >
+            <div className="mb-4 flex items-center justify-between gap-4">
+              <p className="text-sm font-semibold uppercase tracking-wide text-pine/60">
+                Step {tutorialStep + 1} of {tutorialSteps.length}
+              </p>
+              <div className="flex gap-1" aria-hidden="true">
+                {tutorialSteps.map((step, index) => (
+                  <span
+                    key={step.title}
+                    className={`h-2 w-7 rounded ${index <= tutorialStep ? 'bg-pine' : 'bg-pine/15'}`}
+                  />
+                ))}
+              </div>
+            </div>
+            <h2 id="tutorial-title" className="text-2xl font-semibold tracking-normal text-pine">
+              {currentTutorialStep.title}
+            </h2>
+            <p className="mt-3 text-sm leading-6 text-pine/75">{currentTutorialStep.description}</p>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                className="rounded-md border border-pine/20 bg-white px-4 py-2 text-sm font-semibold hover:border-pine/50"
+                onClick={skipTutorial}
+              >
+                Skip
+              </button>
+              <button
+                type="button"
+                className="rounded-md border border-pine bg-pine px-4 py-2 text-sm font-semibold text-white"
+                onClick={nextTutorialStep}
+              >
+                Next
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
     </main>
   );
 }

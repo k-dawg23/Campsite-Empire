@@ -1,6 +1,6 @@
 # Campsite Empire
 
-Campsite Empire v2.0.3 is a React + TypeScript campground management simulation game. You manage a 16x16 isometric campground, place rentable plots and facilities, set prices, host tourists, read guest chatter and reviews, and grow reputation through good planning.
+Campsite Empire v2.0.4 is a React + TypeScript campground management simulation game. You manage a 16x16 isometric campground, place rentable plots and facilities, set prices, host tourists, read guest chatter and reviews, and grow reputation through good planning.
 
 The v1.0 Godot/C# prototype is preserved in Git history and archived in `legacy-godot-v1/`. The active runtime is the browser app.
 
@@ -65,4 +65,4 @@ v2 persists the full Redux game state to IndexedDB. Autosave runs every few seco
 
 ## Version
 
-Current version: `2.0.3`
+Current version: `2.0.4`

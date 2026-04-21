@@ -64,7 +64,7 @@ export const runHourlyTick = createAsyncThunk('game/runHourlyTick', async (_, { 
 });
 
 const initialState = createNewGame();
-const currentVersion = '2.0.3';
+const currentVersion = '2.0.4';
 
 export const gameSlice = createSlice({
   name: 'game',
