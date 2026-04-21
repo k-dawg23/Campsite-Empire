@@ -2,17 +2,18 @@
 
 ## Purpose
 
-Campsite Empire is a desktop campground management simulation game built in Godot 4.4 with C#. The player manages an isometric campground, places plots and facilities, sets prices, hosts tourists, and grows reputation through guest satisfaction and reviews.
+Campsite Empire is a browser-based campground management simulation game built with React, TypeScript, Redux Toolkit, and Tailwind CSS. The player manages an isometric campground, places plots and facilities, sets prices, hosts tourists, and grows reputation through guest satisfaction and reviews.
 
 ## Technology
 
-- Engine: Godot 4.4
-- Language: C#
-- UI: Godot Control UI
-- Map: Godot `TileMapLayer` with isometric tiles
-- Persistence: SQLite
+- Runtime: React web app with Vite
+- Language: TypeScript
+- State: Redux Toolkit
+- Styling: Tailwind CSS
+- Map: browser-rendered 16x16 isometric grid
+- Persistence: IndexedDB
 - AI integration: local model provider such as Ollama, llama.cpp, or LM Studio, with template fallbacks
-- Packaging: Godot desktop export templates
+- Packaging: static web build
 
 ## Product Principles
 
@@ -25,4 +26,5 @@ Campsite Empire is a desktop campground management simulation game built in Godo
 
 - AI output must be structured JSON and validated against explicit schemas.
 - When a local model is unavailable or returns invalid JSON, the game must continue with template-based fallbacks.
-- SQLite persistence is required for full game state, not just player settings.
+- IndexedDB persistence is required for full game state, not just player settings.
+- The v1 Godot/C# implementation is retained only as a legacy archive under `legacy-godot-v1`.

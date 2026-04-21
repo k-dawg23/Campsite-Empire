@@ -1,5 +1,15 @@
 # Packaging Capability
 
+## REMOVED Requirements
+
+### Requirement: Desktop Export Configuration
+
+Campsite Empire v2 no longer uses Godot desktop export templates.
+
+### Requirement: Build Documentation
+
+Campsite Empire v2 replaces desktop build documentation with web build documentation.
+
 ## ADDED Requirements
 
 ### Requirement: Web Build

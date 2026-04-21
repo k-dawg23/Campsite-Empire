@@ -87,7 +87,7 @@
 - [x] Add tests for economy calculations.
 - [x] Add tests for first-JSON-object extraction and schema fallback behavior.
 - [x] Add tests for SQLite save/load round trips.
-- [ ] Manually verify a fresh game, autosave reload, and desktop export run.
+- [x] Manually verify a fresh game, autosave reload, and desktop export run. Superseded by v2 web migration before final archive.
 
 ## 12. Packaging
 
