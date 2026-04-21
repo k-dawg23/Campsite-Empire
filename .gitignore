@@ -9,3 +9,13 @@ obj/
 builds/
 *.tmp
 *.old
+
+# React / Node output
+node_modules/
+dist/
+coverage/
+.vite/
+.playwright-cli/
+*.tsbuildinfo
+vite.config.js
+vite.config.d.ts

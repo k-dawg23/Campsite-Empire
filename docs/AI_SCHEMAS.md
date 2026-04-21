@@ -2,6 +2,8 @@
 
 The AI layer requests one JSON object and parses the first complete object in the response. Any missing field, invalid type, timeout, provider error, or unsafe value falls back to the template implementation.
 
+In v2 browser builds, configure providers with `VITE_CAMPSITE_AI_PROVIDER`, `VITE_CAMPSITE_AI_URL`, and `VITE_CAMPSITE_AI_MODEL`.
+
 ## Tourist Generation
 
 ```json
@@ -9,16 +11,16 @@ The AI layer requests one JSON object and parses the first complete object in th
   "name": "string",
   "personality": "string",
   "budget": 45,
-  "preferred_plot": "TentSite",
-  "likes_facilities": ["Restroom", "FirePit"],
-  "dislikes_nearby": ["Playground"],
+  "preferred_plot": "tentSite",
+  "likes_facilities": ["restroom", "firePit"],
+  "dislikes_nearby": ["playground"],
   "likes_quiet": true,
   "likes_water": false,
   "stay_nights": 2
 }
 ```
 
-Allowed `preferred_plot` values: `TentSite`, `CampervanSpot`, `RvHookup`.
+Allowed `preferred_plot` values: `tentSite`, `campervanSpot`, `rvHookup`.
 
 ## Plot Selection
 

@@ -1,19 +1,31 @@
-# SQLite Save Schema
+# IndexedDB Save Schema
 
-The canonical game state is saved in `save_metadata.json_state` for reliable full-state hydration. Normalized tables are also written for inspection, debugging, and future migrations.
+Campsite Empire v2 persists the canonical Redux game state to IndexedDB.
 
-Tables:
+Database:
 
-- `save_metadata`: schema version, save timestamp, canonical JSON state.
-- `map_tiles`: 16x16 terrain and occupancy references.
-- `structures`: placed plots and facilities.
-- `pricing`: per-plot-type nightly prices.
-- `tourists`: tourist profile and simulation state JSON.
-- `stays`: plot assignment and stay progress.
-- `reviews`: departing guest reviews.
-- `chatter`: guest chatter feed.
-- `economy_ledger`: build costs, revenue, maintenance, and adjustments.
-- `weather_history`: daily weather, season, and demand.
-- `simulation_clock`: current day, hour, weather, season, money, reputation, and demand.
+- Name: `campsite-empire-v2`
+- Object store: `saves`
+- Key: `autosave`
 
-Autosave runs every few seconds and after simulation ticks that may include billing, maintenance, arrivals, chatter, or reviews.
+Save envelope:
+
+```ts
+interface SaveEnvelope {
+  schemaVersion: 2;
+  savedAt: string;
+  state: GameState;
+}
+```
+
+The saved `GameState` includes:
+
+- map tiles and terrain
+- structures and plot occupancy
+- pricing
+- tourists, stays, satisfaction, reviews, and chatter
+- economy ledger, money, reputation, and demand
+- clock, weather, and season
+- AI provider status and fallback counters
+
+Autosave runs every few seconds and the app loads the saved state on startup when the schema version matches.
