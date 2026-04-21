@@ -1,0 +1,11 @@
+# Local AI configuration can include private endpoints or model names.
+.env
+
+# Godot / .NET local output
+.godot/
+.mono/
+bin/
+obj/
+builds/
+*.tmp
+*.old
