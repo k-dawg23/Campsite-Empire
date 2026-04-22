@@ -9,7 +9,7 @@ The v1.0 Godot/C# prototype is preserved in Git history and archived in `legacy-
 - Node.js 22 or newer
 - npm 11 or newer
 - Optional local AI provider:
-  - Ollama at `http://localhost:11434/api/generate`
+  - Ollama at `http://localhost:11434/api/chat`
   - llama.cpp OpenAI-compatible endpoint such as `http://localhost:8080/v1/chat/completions`
   - LM Studio OpenAI-compatible endpoint such as `http://localhost:1234/v1/chat/completions`
 
