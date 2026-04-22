@@ -1,6 +1,6 @@
 import { makeId } from '../../lib/random';
 import { buildables } from './buildables';
-import type { GameState, StructureState, StructureType, TerrainType, TileState } from './types';
+import type { AiStatus, GameState, StructureState, StructureType, TerrainType, TileState } from './types';
 import { mapSize, saveSchemaVersion } from './types';
 
 export function createInitialTiles(): TileState[] {
@@ -17,6 +17,18 @@ export function createInitialTiles(): TileState[] {
     }
   }
   return tiles;
+}
+
+export function createAiStatus(): AiStatus {
+  return {
+    provider: import.meta.env.VITE_CAMPSITE_AI_PROVIDER || '',
+    model: import.meta.env.VITE_CAMPSITE_AI_MODEL || 'llama3.1',
+    url: import.meta.env.VITE_CAMPSITE_AI_URL || 'http://localhost:11434/api/generate',
+    lastSource: 'none',
+    lastFeature: '',
+    successCount: 0,
+    fallbackCount: 0
+  };
 }
 
 export function createNewGame(): GameState {
@@ -45,15 +57,7 @@ export function createNewGame(): GameState {
     reviews: [],
     chatter: [],
     ledger: [],
-    ai: {
-      provider: import.meta.env.VITE_CAMPSITE_AI_PROVIDER || '',
-      model: import.meta.env.VITE_CAMPSITE_AI_MODEL || 'llama3.1',
-      url: import.meta.env.VITE_CAMPSITE_AI_URL || 'http://localhost:11434/api/generate',
-      lastSource: 'none',
-      lastFeature: '',
-      successCount: 0,
-      fallbackCount: 0
-    }
+    ai: createAiStatus()
   };
 
   placeStarter(state, 'tentSite', 5, 6);

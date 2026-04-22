@@ -9,7 +9,7 @@ import {
 } from '../ai/client';
 import { generateFallbackChatter, generateFallbackReview } from '../ai/fallbacks';
 import { buildables } from './buildables';
-import { canPlaceStructure, createNewGame } from './newGame';
+import { canPlaceStructure, createAiStatus, createNewGame } from './newGame';
 import { priceFor } from './selectors';
 import { crowdingPenalty, facilityScore, scoreBestPlot } from './scoring';
 import type {
@@ -71,10 +71,18 @@ export const gameSlice = createSlice({
   initialState,
   reducers: {
     resetGame: () => createNewGame(),
-    hydrateGame: (_state, action: PayloadAction<GameState>) => ({
-      ...action.payload,
-      version: currentVersion
-    }),
+    hydrateGame: (_state, action: PayloadAction<GameState>) => {
+      const currentAi = createAiStatus();
+      return {
+        ...action.payload,
+        version: currentVersion,
+        ai: {
+          ...currentAi,
+          successCount: action.payload.ai?.successCount ?? currentAi.successCount,
+          fallbackCount: action.payload.ai?.fallbackCount ?? currentAi.fallbackCount
+        }
+      };
+    },
     setSpeed(state, action: PayloadAction<Speed>) {
       state.speed = action.payload;
       state.lastEvent = action.payload === 0 ? 'Simulation paused.' : `Simulation running at ${action.payload}x.`;

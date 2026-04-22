@@ -57,7 +57,9 @@ VITE_CAMPSITE_AI_TIMEOUT_MS=60000
 
 Browser security may require enabling CORS on your local model server. If a request is blocked, times out, or returns invalid JSON, the game records the fallback reason in the AI Status panel and continues with template output.
 
-If AI Status says a request timed out, increase `VITE_CAMPSITE_AI_TIMEOUT_MS` and restart `npm run dev`. llama.cpp can be slow on the first request while the model warms up.
+If you change `.env`, restart `npm run dev`. For a production preview or packaged build, run `npm run build` again and restart the server serving `dist/`. Saved games refresh the AI provider, URL, and model from the current environment when they load, while keeping campground progress.
+
+If AI Status says a request timed out, increase `VITE_CAMPSITE_AI_TIMEOUT_MS` and restart the app. llama.cpp can be slow on the first request while the model warms up.
 
 ## Saves
 

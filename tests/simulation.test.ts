@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { gameSlice, placeSelectedBuild, runHourlyTick } from '../src/features/simulation/gameSlice';
+import { gameSlice, hydrateGame, placeSelectedBuild, runHourlyTick } from '../src/features/simulation/gameSlice';
 import { canPlaceStructure, createNewGame } from '../src/features/simulation/newGame';
 import { scoreBestPlot } from '../src/features/simulation/scoring';
 import { selectAvailablePlots, selectOccupancy } from '../src/features/simulation/selectors';
@@ -20,6 +20,30 @@ describe('simulation reducers and selectors', () => {
     expect(next.money).toBeLessThan(state.money);
     expect(selectAvailablePlots({ game: next } satisfies RootLike).length).toBeGreaterThan(0);
     expect(selectOccupancy({ game: next } satisfies RootLike).total).toBeGreaterThan(0);
+  });
+
+  it('refreshes AI configuration from the current environment when hydrating a save', () => {
+    const current = createNewGame();
+    const saved = createNewGame();
+    saved.ai = {
+      provider: 'old-provider',
+      model: 'old-model',
+      url: 'http://old-host.example/v1/chat/completions',
+      lastSource: 'fallback',
+      lastFeature: 'tourist',
+      lastError: 'stale saved error',
+      successCount: 3,
+      fallbackCount: 4
+    };
+
+    const hydrated = gameSlice.reducer(current, hydrateGame(saved));
+
+    expect(hydrated.ai.provider).toBe(current.ai.provider);
+    expect(hydrated.ai.model).toBe(current.ai.model);
+    expect(hydrated.ai.url).toBe(current.ai.url);
+    expect(hydrated.ai.lastError).toBeUndefined();
+    expect(hydrated.ai.successCount).toBe(3);
+    expect(hydrated.ai.fallbackCount).toBe(4);
   });
 
   it('scores plots using price, preferences, reputation, and facilities', () => {
