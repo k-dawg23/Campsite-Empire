@@ -41,7 +41,7 @@ The preferred setup is to copy `.env.example` to `.env` in the project root and 
 
 ```env
 VITE_CAMPSITE_AI_PROVIDER=ollama
-VITE_CAMPSITE_AI_URL=http://localhost:11434/api/generate
+VITE_CAMPSITE_AI_URL=http://localhost:11434/api/chat
 VITE_CAMPSITE_AI_MODEL=llama3.1
 VITE_CAMPSITE_AI_TIMEOUT_MS=30000
 ```
